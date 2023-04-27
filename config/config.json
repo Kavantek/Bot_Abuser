@@ -1,0 +1,52 @@
+{
+    "___DESCRIPTION_VERSION___": "Версия сервера",
+
+    "version": "0.1.0",
+
+    "___DESCRIPTION_PARAM_SERVER___": "Основыные параметры для сервера",
+
+    "server": {
+        "host": "localhost",
+        "port": 8668
+    },
+
+    "___DESCRIPTION_PARAM_DB___": "Основные параметры базы данных",
+
+    "DB_PGSQL": "postgres://klink3:pjRSerLt65@192.168.0.32:5432/l4_test?sslmode=disable",
+
+    "___DESCRIPTION_BOT_PARAMS___": "Основные параметры бота",
+
+    "botParams":{
+        "token" : "5992922537:AAGEoE6KG4nzrcz4k3lmPoioJ80ux4PbDkE"
+    },
+    
+    "___DESCRIPTION_SQL_REQUEST___": "Запросы в базу данных",
+
+    "sql": {
+        "select":{
+            "getNumberOfUsers" : "SELECT COUNT(id) FROM users",
+            "getUsers" :    "SELECT name, job_title FROM users",
+            "getPhone" : "SELECT phone_number FROM forwards WHERE code_mp = '%s' AND switch_number = '%s'",
+            "getListenCallTest" : "SELECT uid, switch_number FROM calls WHERE call_datetime > '%s' AND uid = '%s' AND switch_number = '%s'",
+            "getWrongMessageTest" : "SELECT error FROM calls WHERE call_datetime > '%s' AND  error LIKE '%s'",
+            "getUid": "SELECT uid FROM devices WHERE code_mp = '%s'",
+            "getCalls": "SELECT id, uid, switch_number, call_datetime FROM calls WHERE uid = '%s' AND call_datetime > '%s'",
+            "getGetPhoto": "SELECT get_photo FROM devices WHERE code_mp = '%s'"
+        },
+        "insert":{
+            "addUser" : "INSERT INTO users (name, job_title, chatID) VALUES ('%s', '%s', %d)"
+        },
+        "update":{
+            "timeBegin" :   "UPDATE calls SET start_get_photo = now() WHERE id = %d",
+            "forward" :     "UPDATE calls SET is_forward = %v, phone_numbers = '%s', code_mp = '%s' WHERE id = %d",
+            "timeEnd" :     "UPDATE calls SET orig_file_size = %d, end_get_photo = now(), tmp_file_path = '%s' WHERE id = %d",
+            "errorUpdate" : "UPDATE calls SET error = '%s' WHERE id = %d",
+            "updateGetPhoto": "UPDATE devices SET get_photo = %d WHERE code_mp = '%s'",
+            "updateStatus": "UPDATE calls SET status = 1 WHERE id IN (%s)"
+        }        
+    },
+    "errorRu" : {
+        "getNumberOfUsers" : "xx.1.1 - Не удалось получить количество пользователей",
+        "addUser" : "xx.2.1 - Не удалось создать пользователя"
+    }
+}
