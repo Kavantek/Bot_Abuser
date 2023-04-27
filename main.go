@@ -37,10 +37,39 @@ func main() {
 
 	var chatID int64 = -1001673668774
 
+	var keybord tgbotapi.ReplyKeyboardMarkup
+
+	var Rano tgbotapi.KeyboardButton
+
+	Rano.Text = "Рано"
+
+	var Uje tgbotapi.KeyboardButton
+
+	Uje.Text = "Мы уже"
+
+	var Zanato tgbotapi.KeyboardButton
+
+	Zanato.Text = "Занято"
+
+	var Vihodnoi tgbotapi.KeyboardButton
+
+	Vihodnoi.Text = "Выходной"
+
+	var buttons []tgbotapi.KeyboardButton
+
+	buttons = append(buttons, Rano, Uje, Zanato, Vihodnoi)
+
+	butt := tgbotapi.NewReplyKeyboard(buttons)
+
+	keybord.Keyboard = append(keybord.Keyboard, buttons)
+
 	msg := tgbotapi.NewMessage(chatID, "Я снова с вами!")
 	bot.Send(msg)
 	stiker := tgbotapi.NewStickerShare(chatID, "CAACAgIAAxkBAAEIpvdkQTa5LWDNwb_e4qV6FVNAGaGRzAACNRIAAlbWCUhVwiQqqj_qfi8E")
 	bot.Send(stiker)
+	menu := tgbotapi.NewMessage(chatID, "Вот меню, чтоб вам - ленивым жопам было удобнее")
+	menu.ReplyMarkup = butt
+	bot.Send(menu)
 
 	go Bye(chatID, bot)
 
