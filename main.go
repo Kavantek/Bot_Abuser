@@ -8,7 +8,6 @@ import (
 	"os"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	tgbotapi "github.com/Syfaro/telegram-bot-api"
@@ -18,6 +17,7 @@ var agrCount int
 var timer int
 var Counter int
 var SpamTimer time.Time
+var MsgFlag bool = false
 
 func main() {
 	config := mod.CreateParamServer("./config/config.json")
@@ -37,37 +37,47 @@ func main() {
 
 	var chatID int64 = -1001673668774
 
-	var keybord tgbotapi.ReplyKeyboardMarkup
+	var R tgbotapi.KeyboardButton
 
-	var Rano tgbotapi.KeyboardButton
+	R.Text = "Рано"
 
-	Rano.Text = "Рано"
+	var U tgbotapi.KeyboardButton
 
-	var Uje tgbotapi.KeyboardButton
+	U.Text = "Мы уже"
 
-	Uje.Text = "Мы уже"
+	var Z tgbotapi.KeyboardButton
 
-	var Zanato tgbotapi.KeyboardButton
+	Z.Text = "Занято"
 
-	Zanato.Text = "Занято"
+	var Sm tgbotapi.KeyboardButton
 
-	var Vihodnoi tgbotapi.KeyboardButton
+	Sm.Text = "Передвинь таймер"
 
-	Vihodnoi.Text = "Выходной"
+	var Sc tgbotapi.KeyboardButton
 
-	var buttons []tgbotapi.KeyboardButton
+	Sc.Text = "Сколько"
 
-	buttons = append(buttons, Rano, Uje, Zanato, Vihodnoi)
+	var P tgbotapi.KeyboardButton
 
-	butt := tgbotapi.NewReplyKeyboard(buttons)
+	P.Text = "Потеря бойца"
 
-	keybord.Keyboard = append(keybord.Keyboard, buttons)
+	first := tgbotapi.NewKeyboardButtonRow(R, U, Z)
+	second := tgbotapi.NewKeyboardButtonRow(P, Sc)
+	third := tgbotapi.NewKeyboardButtonRow(Sm)
+
+	butt := tgbotapi.NewReplyKeyboard(first, second, third)
 
 	msg := tgbotapi.NewMessage(chatID, "Я снова с вами!")
 	bot.Send(msg)
 	stiker := tgbotapi.NewStickerShare(chatID, "CAACAgIAAxkBAAEIpvdkQTa5LWDNwb_e4qV6FVNAGaGRzAACNRIAAlbWCUhVwiQqqj_qfi8E")
 	bot.Send(stiker)
-	menu := tgbotapi.NewMessage(chatID, "Вот меню, чтоб вам - ленивым жопам было удобнее")
+	menu := tgbotapi.NewMessage(chatID, `Вот команды, чтоб вам - ленивым жопам было удобнее:
+Рано - Откладывает таймер на 5 минут
+Мы уже - Откладывает таймер на 30 минут
+Занято - Откладывает таймер на 10 минут
+Выходной - Откладывает таймер до следующего дня
+Передвинь таймер на Х - Откладывает таймер на Х минут
+Сколько - показывает сколько времени до следующего перекура`)
 	menu.ReplyMarkup = butt
 	bot.Send(menu)
 
@@ -84,14 +94,14 @@ func main() {
 			weekday := time.Now().Weekday()
 			fmt.Printf("Now: %v, %v\n", now, weekday)
 			if now >= start && now < end && fmt.Sprintf("%v", weekday) != "Sunday" && fmt.Sprintf("%v", weekday) != "Saturday" {
-				timer = 45
+				timer = 60
 				for {
 					time.Sleep(time.Minute)
 					timer--
 					now := time.Duration(time.Now().Hour()) * time.Hour
 					if timer <= 0 && now < end {
-						msg := tgbotapi.NewMessage(chatID, "Пора курить")
-						bot.Send(msg)
+						audio := tgbotapi.NewAudioUpload(chatID, "./audio.ogg")
+						bot.Send(audio)
 						for i := 0; i < 5; i++ {
 							time.Sleep(time.Second * 30)
 							if timer > 0 {
@@ -120,6 +130,15 @@ func main() {
 			if tr == 9999999 {
 				msg := tgbotapi.NewMessage(chatID, fmt.Sprintf("Потерпите поцаны. Осталось %v минут.", timer))
 				bot.Send(msg)
+			} else if tr == 744444444 {
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Заебали спамить черти! Я спать нахуй!")
+				bot.Send(msg)
+				Counter = 0
+				time.Sleep(time.Minute * 5)
+				msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Я проснулся, суки.  Вам пизда")
+				bot.Send(msg)
+			} else if tr == 1337 {
+				bot.Send(menu)
 			} else {
 				timer += tr
 			}
@@ -129,10 +148,23 @@ func main() {
 }
 
 func Router(update tgbotapi.Update, bot *tgbotapi.BotAPI) int {
-	m, _ := regexp.MatchString("^Смести таймер на", update.Message.Text)
+	if Counter == 0 {
+		SpamTimer = time.Now()
+	}
 
-	if m {
-		anStr := strings.Split(update.Message.Text, " ")[3]
+	if Counter >= 15 {
+
+	} else {
+		if time.Now().Sub(SpamTimer) < time.Minute {
+			Counter++
+			fmt.Printf("Counter: %v\n", Counter)
+		} else {
+			Counter = 0
+		}
+	}
+
+	if MsgFlag {
+		anStr := update.Message.Text
 		if len(anStr) > 4 {
 			anStr = anStr[:4]
 		}
@@ -142,11 +174,13 @@ func Router(update tgbotapi.Update, bot *tgbotapi.BotAPI) int {
 		if an == 0 {
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Чё за хуйню написал этот кретин?")
 			bot.Send(msg)
+			MsgFlag = false
 			return 0
 		}
 		if an > 120 || an < -120 {
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Вы чё ебанулись? Я таких чисел то не знаю. Идите нахуй")
 			bot.Send(msg)
+			MsgFlag = false
 			return 0
 		}
 
@@ -155,6 +189,7 @@ func Router(update tgbotapi.Update, bot *tgbotapi.BotAPI) int {
 
 		stiker := tgbotapi.NewStickerShare(update.Message.Chat.ID, "CAACAgIAAxkBAAEItANkRjpXuNspodI9Z5drh-WTdc46tAACeyUAAp7OCwABmYOHg-RjJsQvBA")
 		bot.Send(stiker)
+		MsgFlag = false
 		return an
 	}
 
@@ -189,20 +224,25 @@ func Router(update tgbotapi.Update, bot *tgbotapi.BotAPI) int {
 	}
 
 	switch update.Message.Text {
+	case "Передвинь таймер":
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "На сколько минут?")
+		bot.Send(msg)
+		MsgFlag = true
+		return 0
 	case "Да":
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Пизда")
+		msg := tgbotapi.NewPhotoUpload(update.Message.Chat.ID, "./pizda.jpeg")
 		bot.Send(msg)
 		return 0
 	case "Занято":
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Шо опять?")
+		msg := tgbotapi.NewPhotoUpload(update.Message.Chat.ID, "./blat.jpg")
 		bot.Send(msg)
 		return 10
 	case "Рано":
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Грустный пон")
+		msg := tgbotapi.NewPhotoUpload(update.Message.Chat.ID, "./pon.jpg")
 		bot.Send(msg)
 		return 5
 	case "Мы уже":
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Да блять...")
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Блять. И нахуй я тогда нужен?")
 		bot.Send(msg)
 		return 35
 	case "Иди нахуй":
@@ -214,7 +254,7 @@ func Router(update tgbotapi.Update, bot *tgbotapi.BotAPI) int {
 		bot.Send(msg)
 		return 0
 	case "Выходной":
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Сорян. Зря быканул")
+		msg := tgbotapi.NewPhotoUpload(update.Message.Chat.ID, "./soran.jpg")
 		bot.Send(msg)
 		ret := 24 - time.Now().Hour()
 		return ret * 60
@@ -222,6 +262,31 @@ func Router(update tgbotapi.Update, bot *tgbotapi.BotAPI) int {
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Осуждаю. (Донос отправлен товарищу майору)")
 		bot.Send(msg)
 		return 0
+	case "Пизда нам":
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Понял")
+		bot.Send(msg)
+		pic := tgbotapi.NewPhotoUpload(update.Message.Chat.ID, "./Hehe.jpg")
+		bot.Send(pic)
+		time.Sleep(time.Second * 20)
+		for i := 0; i < 50; i++ {
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Убить спамеров")
+			bot.Send(msg)
+			time.Sleep(time.Second)
+		}
+		time.Sleep(time.Minute)
+		msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Думали всё?")
+		bot.Send(msg)
+		pic = tgbotapi.NewPhotoUpload(update.Message.Chat.ID, "./Kill.jpeg")
+		bot.Send(pic)
+		for i := 0; i < 50; i++ {
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Убивать")
+			bot.Send(msg)
+			time.Sleep(time.Second)
+		}
+		audio := tgbotapi.NewAudioUpload(update.Message.Chat.ID, "./scream.ogg")
+		bot.Send(audio)
+		return 0
+
 	case "Потеря бойца":
 		n := rand.Intn(100)
 		if n < 33 {
@@ -239,6 +304,8 @@ func Router(update tgbotapi.Update, bot *tgbotapi.BotAPI) int {
 		}
 	case "Сколько":
 		return 9999999
+	case "Меню":
+		return 1337
 	case "Пидор":
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "А может это ты пидор?")
 		bot.Send(msg)
@@ -276,24 +343,6 @@ func Router(update tgbotapi.Update, bot *tgbotapi.BotAPI) int {
 		bot.Send(msg)
 		return 0
 	default:
-		if Counter == 0 {
-			SpamTimer = time.Now()
-		}
-		if Counter >= 15 {
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Заебали спамить черти! Я спать нахуй!")
-			bot.Send(msg)
-			Counter = 0
-			time.Sleep(time.Minute * 5)
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Я проснулся")
-			bot.Send(msg)
-		} else {
-			if time.Now().Sub(SpamTimer) < time.Minute {
-				Counter++
-				fmt.Printf("Counter: %v\n", Counter)
-			} else {
-				Counter = 0
-			}
-		}
 		return 0
 	}
 }
@@ -311,6 +360,12 @@ func Bye(chatId int64, bot *tgbotapi.BotAPI) {
 			os.Exit(0)
 		} else if end == "go" {
 			msg := tgbotapi.NewMessage(chatId, "Внезапный перекур. Кто не идёт - тот куколд из кружка кожевников!")
+			bot.Send(msg)
+		} else if end == "tak" {
+			msg := tgbotapi.NewMessage(chatId, "@Kavantek @daniayar01 @Kobalt_KSPA и @Lev - чмоня, которого упоминать нельзя, Вы чё суки ещё здесь? Я СКАЗАЛ СЪЕБАЛИСЬ НАХУЙ!!!")
+			bot.Send(msg)
+		} else if end == "suk" {
+			msg := tgbotapi.NewMessage(chatId, "@Kavantek @daniayar01 @Kobalt_KSPA и @Lev - чмоня, которого упоминать нельзя, если через 10 секунд вы всё ещё будете здесь, я скину Вере вашу историю браузеров. БЕГОМ ОТ СЮДА БЛЯТЬ!!!")
 			bot.Send(msg)
 		} else if end == "timer" {
 			sc := bufio.NewScanner(os.Stdin)
